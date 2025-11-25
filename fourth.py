@@ -1,90 +1,148 @@
-def je_tah_mozny(figura: str, start: tuple[int, int], cil: tuple[int, int], obsazena: set[tuple[int, int]]) -> bool:
+
+
+
+def je_mimo_sachovnici(pozice):
+    min_pozice= 1
+    max_pozice = 8
+    radek, sloupec = pozice
+    return not (min_pozice <= radek <= max_pozice and min_pozice <= sloupec <= max_pozice)
+
+def je_tah_pripustny_vez(puvodni_pozice, cilova_pozice):
+    puvodni_radek, puvodni_sloupec = puvodni_pozice
+    cilovy_radek, cilovy_sloupec = cilova_pozice
+    return (puvodni_radek == cilovy_radek and puvodni_sloupec != cilovy_sloupec) or \
+           (puvodni_radek != cilovy_radek and puvodni_sloupec == cilovy_sloupec)
+
+def je_tah_pripustny_strelec(puvodni_pozice, cilova_pozice):
+    puvodni_radek, puvodni_sloupec = puvodni_pozice
+    cilovy_radek, cilovy_sloupec = cilova_pozice
+    rozdil_radku = abs(puvodni_radek - cilovy_radek)
+    rozdil_sloupcu = abs(puvodni_sloupec - cilovy_sloupec)
+    return rozdil_radku == rozdil_sloupcu and puvodni_pozice != cilova_pozice
+
+def je_cesta_volna(puvodni_pozice, cilova_pozice, obsazene_pozice):
+    puvodni_radek, puvodni_sloupec = puvodni_pozice
+    cilovy_radek, cilovy_sloupec = cilova_pozice
+
+    rozdil_radku = cilovy_radek - puvodni_radek
+    rozdil_sloupcu = cilovy_sloupec - puvodni_sloupec
+
+    #  smer pohybu
+    krok_radek = 0
+    if rozdil_radku > 0:
+        krok_radek = 1
+    elif rozdil_radku < 0:
+        krok_radek = -1
+
+    krok_sloupec = 0
+    if rozdil_sloupcu > 0:
+        krok_sloupec = 1
+    elif rozdil_sloupcu < 0:
+        krok_sloupec = -1
+
+    #vsechny pole 
+    aktualni_radek, aktualni_sloupec = puvodni_radek + krok_radek, puvodni_sloupec + krok_sloupec
+    while (aktualni_radek, aktualni_sloupec) != cilova_pozice:
+        if (aktualni_radek, aktualni_sloupec) in obsazene_pozice:
+            return False  
+        aktualni_radek += krok_radek
+        aktualni_sloupec += krok_sloupec
+
+    return True  
+
+def je_tah_mozny_strelec():
+    pass
+
+def je_tah_mozny_dama():
+    pass
+
+def je_tah_mozny(figurka, cilova_pozice, obsazene_pozice):
     """
-    figura: 'pesec' | 'jezdec' | 'vez' | 'strelec' | 'dama' | 'kral'
-    start: (radek, sloupec) 1..8
-    cil:   (radek, sloupec) 1..8
-    obsazena: množina obsazených polí (řádek, sloupec). Barvy neřešíme, cílové pole musí být volné.
+    Ověří, zda se figurka může přesunout na danou pozici.
 
-    Pozn.: Pěšec jde směrem k vyšším řádkům; dvojkrok pouze z řádku 2 a jen když jsou obě pole volná.
-    """
-
-    def na_sachovnici(p):
-        r, c = p
-        return 1 <= r <= 8 and 1 <= c <= 8
-
-    def sign(x):
-        return (x > 0) - (x < 0)
-
-    def cesta_volna(a, b):
-        """Zkontroluje, zda je volná cesta z a do b (mimo cílového pole; to se kontroluje zvlášť). 
-        Používá se pro věž/střelce/dámu a také pro pěšcův dvojkrok (1 mezikrok)."""
-        ra, ca = a
-        rb, cb = b
-        dr, dc = rb - ra, cb - ca
-        stepr, stepc = sign(dr), sign(dc)
-
-        if stepr == 0 and stepc == 0:
-            return True
-        r, c = ra + stepr, ca + stepc
-        while (r, c) != b:
-            if (r, c) in obsazena:
-                return False
-            r += stepr
-            c += stepc
-        return True
-
-    if not na_sachovnici(start) or not na_sachovnici(cil):
-        return False
-
-    if cil in obsazena:
-        return False
+    :param figurka: Slovník s informacemi o figurce (typ, pozice).
+    :param cilova_pozice: Cílová pozice na šachovnici jako n-tice (řádek, sloupec).
+    :param obsazene_pozice: Množina obsazených pozic na šachovnici.
     
-    if start == cil:
+    :return: True, pokud je tah možný, jinak False.
+    """
+    typ_figurky = figurka["typ"]
+    puvodni_pozice = figurka["pozice"]
+    puvodni_radek, puvodni_sloupec = puvodni_pozice
+    cilovy_radek, cilovy_sloupec = cilova_pozice
+    
+    
+    if je_mimo_sachovnici(cilova_pozice) or puvodni_pozice == cilova_pozice:
         return False
-
-    sr, sc = start
-    tr, tc = cil
-    dr, dc = tr - sr, tc - sc
-    adr, adc = abs(dr), abs(dc)
-
-    f = figura.strip().lower()
-
-    if f == 'jezdec':
-        return (adr, adc) in {(1, 2), (2, 1)}
-
-    if f == 'kral':
-        return max(adr, adc) == 1
-
-    if f == 'vez':
-        if sr == tr or sc == tc:
-            return cesta_volna(start, cil)
-        return False
-
-    if f == 'strelec':
-        if adr == adc:
-            return cesta_volna(start, cil)
-        return False
-
-    if f == 'dama':
-        if sr == tr or sc == tc or adr == adc:
-            return cesta_volna(start, cil)
-        return False
-
-    if f == 'pesec':
         
-        if dc != 0:
+    if cilova_pozice in obsazene_pozice:
+        return False
+
+    rozdil_radku = cilovy_radek - puvodni_radek
+    rozdil_sloupcu = cilovy_sloupec - puvodni_sloupec
+    
+    
+    if typ_figurky == "pěšec":
+        if rozdil_sloupcu != 0 or rozdil_radku <= 0:
             return False
-        
-        if dr == 1:
             
+        if rozdil_radku == 1:
             return True
-        
-        if sr == 2 and dr == 2:
-            mezikrok = (sr + 1, sc)
-            if mezikrok in obsazena:
-                return False
-            
-            return cesta_volna(start, cil)
+        elif rozdil_radku == 2 and puvodni_radek == 2:
+            mezilehla_pozice = (puvodni_radek + 1, puvodni_sloupec)
+            return mezilehla_pozice not in obsazene_pozice
+        else:
+            return False
+
+    elif typ_figurky == "jezdec":
+        if (abs(rozdil_radku) == 2 and abs(rozdil_sloupcu) == 1) or \
+           (abs(rozdil_radku) == 1 and abs(rozdil_sloupcu) == 2):
+            return True 
         return False
 
-    return False
+    elif typ_figurky == "věž":
+        if je_tah_pripustny_vez(puvodni_pozice, cilova_pozice):
+            return je_cesta_volna(puvodni_pozice, cilova_pozice, obsazene_pozice)
+        return False
+        
+    elif typ_figurky == "střelec":
+        if je_tah_pripustny_strelec(puvodni_pozice, cilova_pozice):
+            return je_cesta_volna(puvodni_pozice, cilova_pozice, obsazene_pozice)
+        return False
+        
+    elif typ_figurky == "dáma":
+        if je_tah_pripustny_vez(puvodni_pozice, cilova_pozice) or \
+           je_tah_pripustny_strelec(puvodni_pozice, cilova_pozice):
+            return je_cesta_volna(puvodni_pozice, cilova_pozice, obsazene_pozice)
+        return False
+
+    elif typ_figurky == "král":
+        if abs(rozdil_radku) <= 1 and abs(rozdil_sloupcu) <= 1:
+            return True
+        return False
+        
+    return False 
+
+
+if __name__ == "__main__":
+    pesec = {"typ": "pěšec", "pozice": (2, 2)}
+    jezdec = {"typ": "jezdec", "pozice": (3, 3)}
+    vez = {"typ": "věž", "pozice": (8, 8)}
+    strelec = {"typ": "střelec", "pozice": (6, 3)}
+    dama = {"typ": "dáma", "pozice": (8, 3)}
+    kral = {"typ": "král", "pozice": (1, 4)}
+    obsazene_pozice = {(2, 2), (8, 2), (3, 3), (5, 4), (8, 3), (8, 8), (6, 3), (1, 4)}
+
+    print(f"Pěšec (2,2) -> (3,2): {je_tah_mozny(pesec, (3, 2), obsazene_pozice)}")  # True
+
+    print(f"Pěšec (2,2) -> (4,2): {je_tah_mozny(pesec, (4, 2), obsazene_pozice)}")  # True/False (dle mé logiky True, dle poznámky False)
+    print(f"Pěšec (2,2) -> (1,2): {je_tah_mozny(pesec, (1, 2), obsazene_pozice)}")  # False
+
+    print(f"Jezdec (3,3) -> (4,4): {je_tah_mozny(jezdec, (4, 4), obsazene_pozice)}")  # False
+    print(f"Jezdec (3,3) -> (5,4): {je_tah_mozny(jezdec, (5, 4), obsazene_pozice)}")  # False (obsazená pozice)
+    print(f"Jezdec (3,3) -> (1,2): {je_tah_mozny(jezdec, (1, 2), obsazene_pozice)}")  # True
+    print(f"Jezdec (3,3) -> (9,3): {je_tah_mozny(jezdec, (9, 3), obsazene_pozice)}")  # False
+
+    print(f"Dáma (8,3) -> (8,1): {je_tah_mozny(dama, (8, 1), obsazene_pozice)}")  # False (blokuje (8,2))
+    print(f"Dáma (8,3) -> (1,3): {je_tah_mozny(dama, (1, 3), obsazene_pozice)}")  # False (blokuje (6,3))
+    print(f"Dáma (8,3) -> (3,8): {je_tah_mozny(dama, (3, 8), obsazene_pozice)}")  # True
